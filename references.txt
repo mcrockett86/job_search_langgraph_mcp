@@ -1,0 +1,29 @@
+# how to guides for using langgraph, details example notebooks
+https://github.com/langchain-ai/langgraph/tree/main/docs/docs/how-tos
+
+https://github.com/zcaceres/markdownify-mcp
+https://n8n.io/
+
+https://medium.com/@sajith_k/creating-an-mcp-server-and-integrating-with-langgraph-5f4fa434a4c7
+https://langchain-ai.github.io/langgraph/agents/mcp/
+https://medium.com/@gitmaxd/understanding-state-in-langgraph-a-comprehensive-guide-191462220997
+
+# state and checkpoints
+https://langchain-ai.github.io/langgraph/concepts/persistence/#get-state-history
+https://langchain-ai.github.io/langgraph/reference/graphs/
+https://langchain-ai.github.io/langgraph/concepts/low_level/
+
+# Example Integrations with MCP and Lang Graph Graph
+https://medium.com/@sajith_k/creating-an-mcp-server-and-integrating-with-langgraph-5f4fa434a4c7
+
+# define more complex input and output schemas
+https://langchain-ai.github.io/langgraph/how-tos/graph-api/#define-input-and-output-schemas
+
+# passing around private datas between node states
+https://langchain-ai.github.io/langgraph/how-tos/graph-api/#pass-private-state-between-nodes
+
+# command keyword to specify go-to functionality
+https://langchain-ai.github.io/langgraph/concepts/low_level/#command
+
+# Fast MCP documentation and examples
+https://gofastmcp.com/servers/context
