@@ -43,6 +43,7 @@ class JobState(TypedDict):
     job_description: Optional[str]
     is_match: Optional[bool]
     resume_draft: Optional[str]
+    cover_letter_draft: Optional[str]
     messages: Annotated[list[AnyMessage], add_messages]
 
 
@@ -145,50 +146,94 @@ async def route_job(state: JobState) -> str:
 async def draft_resume(state: JobState, llm: ChatOpenAI, resume_text: str):
     """Draft a Modification of Provided Resume for the Specific Job Description."""
 
-    print(f"Drafting a custom resume for the job seeker based on the job description and provided resume content.")
-    job_description = state["job_description"]
+    if 'resume_draft' not in state:
+        print(f"Drafting a custom resume for the job seeker based on the job description and provided resume content.")
+        job_description = state["job_description"]
 
-    prompt = f"""
-        You are an experienced job placement recruiter.  You are provided with a specific job description, and a job seeker's starting resume.  Make modifications to tailor the provided resume content with skills or interests that better match the provided job description.
+        prompt = f"""
+            You are an experienced job placement recruiter.  You are provided with a specific job description, and a job seeker's starting resume.  Make modifications to tailor the provided resume content with skills or interests that better match the provided job description.
+            
+            Job Description: {job_description}
+            Resume Content: {resume_text}
+
+            The final answer is the tailored resume.  Return only the final answer.\n\n\n\n
+        """
+
+        messages = [HumanMessage(content=prompt)]
+        response = await llm.ainvoke(messages)
+
+        if response.content:
+            return {
+                "resume_draft": response.content.lstrip("```markdown\n").rstrip("\n```"),
+            }
         
-        Job Description: {job_description}
-        Resume Content: {resume_text}
-
-        The final answer is the tailored resume.  Return only the final answer.\n\n\n\n
-    """
-
-    messages = [HumanMessage(content=prompt)]
-    response = await llm.ainvoke(messages)
-
-    if response.content:
-        return {
-            "resume_draft": response.content.lstrip("```markdown\n").rstrip("\n```"),
-        }
+        else:
+            return {
+                "messages": [response]
+            }
     
     else:
-        return {
-            "messages": [response]
-        }
+        return state
     
 
-async def save_resume(state: JobState):
-    """Save the Drafted Resume for Job Seeker for Use Later."""
+async def draft_cover_letter(state: JobState, llm: ChatOpenAI, resume_text: str):
+    """Draft a Modification of Provided Resume for the Specific Job Description."""
 
-    if 'resume_draft' in state:
-
-        id_run = state["id_run"]
-        job_url = state["job_url"]
+    if 'cover_letter_draft' not in state and 'resume_draft' in state:
+        print(f"Drafting a custom cover letter for the job seeker based on the job description and provided resume content.")
+        job_description = state["job_description"]
         resume_draft = state["resume_draft"]
 
-        # Save the draft resume to a file (converted to a PDF) and with a reference to the job URL
-        print(f"Saving the draft resume for the job seeker to apply to the job at {job_url}.")
+        prompt = f"""
+            You are a job seeker very interested in the job you are applying to.  
+            You are provided with a specific job description, 
+            You are provided with a resume that is tailored to that job description. 
+            Create a cover letter tailored for applying to this job.
+            
+            Job Description: {job_description}
+            Resume Content: {resume_draft}
 
-        if not os.path.isdir('resumes'):
-            os.mkdir('resumes')
+            The final answer is the cover letter.  Return only the final answer.\n\n\n\n
+        """
 
-        md2pdf(f"resumes/{id_run}.pdf", md_content=resume_draft)
+        messages = [HumanMessage(content=prompt)]
+        response = await llm.ainvoke(messages)
 
-        return {}
+        if response.content:
+            return {
+                "cover_letter_draft": response.content.lstrip("```markdown\n").rstrip("\n```"),
+            }
+        
+        else:
+            return {
+                "messages": [response]
+            }
+    
+    else:
+        return state
+
+
+async def save_resume_and_cover_letter(state: JobState):
+    """Save the Drafted Resume for Job Seeker for Use Later."""
+
+    id_run = state["id_run"]
+    job_url = state["job_url"]
+    resume_draft = state["resume_draft"]
+    cover_letter_draft = state["cover_letter_draft"]
+
+    # Save the draft resume to a file (converted to a PDF) and with a reference to the job URL
+    print(f"Saving the draft resume and draft cover letter for the job seeker to apply to the job at {job_url}.")
+
+    if not os.path.isdir('resumes'):
+        os.mkdir('resumes')
+
+    if not os.path.isdir('resumes_cover_letters'):
+        os.mkdir('resumes_cover_letters')
+
+    md2pdf(f"resumes/{id_run}.pdf", md_content=resume_draft)
+    md2pdf(f"resumes_cover_letters/{id_run}.pdf", md_content=cover_letter_draft)
+
+    return {}
 
 
 def create_job_graph(llm_with_tools: ChatOpenAI, tools: List[BaseTool], resources_dict: Dict[str,str], prompts: List[HumanMessage]) -> StateGraph:
@@ -209,7 +254,8 @@ def create_job_graph(llm_with_tools: ChatOpenAI, tools: List[BaseTool], resource
     builder.add_node("handle_bad_fit", handle_bad_fit)
     builder.add_node("handle_good_fit", handle_good_fit)
     builder.add_node("draft_resume", partial(draft_resume, llm=llm_with_tools, resume_text=resources_dict["resume_full"]))
-    builder.add_node("save_resume", save_resume)
+    builder.add_node("draft_cover_letter", partial(draft_cover_letter, llm=llm_with_tools, resume_text=resources_dict["resume_full"]))
+    builder.add_node("save_resume_and_cover_letter", save_resume_and_cover_letter)
 
     ###  Define The Job Graph Routing Logic ###
     builder.add_edge(START, "read_job_description")
@@ -229,13 +275,16 @@ def create_job_graph(llm_with_tools: ChatOpenAI, tools: List[BaseTool], resource
     )
     builder.add_edge("handle_bad_fit", END)
     builder.add_edge("handle_good_fit", "draft_resume")
-    
+    builder.add_edge("draft_resume", "draft_cover_letter")
+
+
     # connect back up the pending node
     builder.add_edge("pending_node", "classify_job_description")
 
     # TODO: maybe need to make a create PDF tool from content?
-    builder.add_edge("draft_resume", "save_resume")
-    builder.add_edge("save_resume", END)
+    builder.add_edge("draft_cover_letter", "save_resume_and_cover_letter")
+
+    builder.add_edge("save_resume_and_cover_letter", END)
 
 
     checkpointer = InMemorySaver()
@@ -267,18 +316,17 @@ async def get_model_with_tools():
             },
 
             # MCP Server for Markdownify-MCP
-            "markdownify": {
-                "command": "node",
-                "args": [
-                    "markdownify-mcp/dist/index.js"
-                ],
-                "env": {
-                    #By default, the server will use the default install location of `uv`
-                    #"UV_PATH": "/path/to/uv"
-                },
-                "transport": "stdio"
-            }
-
+            #"markdownify": {
+            #    "command": "node",
+            #    "args": [
+            #        "markdownify-mcp/dist/index.js"
+            #    ],
+            #    "env": {
+            #        #By default, the server will use the default install location of `uv`
+            #        #"UV_PATH": "/path/to/uv"
+            #    },
+            #    "transport": "stdio"
+            #}
         }
     )
 
@@ -286,9 +334,10 @@ async def get_model_with_tools():
 
     # get the tools, prompts, and resources from the connected MCP servers for the MCP Client
     tools_r1_stdio = await client.get_tools(server_name="r1_stdio")         # get the tools from the r1_stdio-MCP server
-    tools_markdownify = await client.get_tools(server_name="markdownify")   # get the tools from the Markdownify-MCP server
+    #tools_markdownify = await client.get_tools(server_name="markdownify")   # get the tools from the Markdownify-MCP server
 
-    tools = tools_r1_stdio + tools_markdownify                              # combine the set of tools from the 2 MCP servers
+    #tools = tools_r1_stdio + tools_markdownify                              # combine the set of tools from the 2 MCP servers
+    tools = tools_r1_stdio
 
     resources_resume_full = await client.get_resources(server_name="r1_stdio", uris=["resume://full"])
     resources_resume_software = await client.get_resources(server_name="r1_stdio", uris=["resume://software"])
