@@ -420,7 +420,7 @@ if __name__ == '__main__':
         print("Updating prior jobs application cache ...")
 
         # if continue, update the cache
-        df_old_jobs_update.to_csv('cache/target_jobs_old.csv')
+        df_old_jobs_update.to_csv('cache/target_jobs_old.csv', index=False)
 
         df_new_jobs_filtered['thread_id'] = ''
         df_new_jobs_filtered['id_run'] = ''
