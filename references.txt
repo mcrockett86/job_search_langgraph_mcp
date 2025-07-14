@@ -1,3 +1,44 @@
+# how to generate structured output from the LLM scraping:
+
+
+https://github.com/langchain-ai/langgraph/discussions/1540
+
+
+
+# Llama 3.1
+structured_answer = {
+    "title": "Answer",
+    "description": "Give answer to user in this, specific format.",
+    "type": "object",
+    "properties": {
+        "answer": {
+            "type": "string",
+            "description": "Short response or explanation for user's question.",
+        },
+        "movie_names": {
+            "type": "array",
+            "description": "The EXACT movie names that you gave to user.",
+            "items": {"type": "string"},
+        },
+    },
+    "required": ["answer", "movie_names"],
+}
+
+# Initializing the LLM
+llm = ChatOllama(
+    base_url="<hidden>",
+    model="llama3.1:8b",
+    keep_alive="-1m",
+    temperature=0.0,
+    format="json"
+)
+
+# Using the structured output as function calls
+model = llm.with_structured_output(structured_answer)
+model.run("What is the name of the movie that ...")
+
+
+
 # how to guides for using langgraph, details example notebooks
 https://github.com/langchain-ai/langgraph/tree/main/docs/docs/how-tos
 

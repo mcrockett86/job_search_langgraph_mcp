@@ -10,7 +10,7 @@ uv venv
 source .venv/bin/activate
 
 # Install dependencies
-uv add "mcp[cli]" httpx fastmcp langchain-mcp-adapters langgraph langchain "langchain[openai]" pypdf html2text bs4 langchain-community langchain-core md2pdf pandas
+uv add "mcp[cli]" httpx fastmcp langchain-mcp-adapters langgraph langchain "langchain[openai]" pypdf html2text bs4 langchain-community langchain-core md2pdf pandas selenium webdriver-manager 
 
 # Install Markdownify-MCP
 git clone https://github.com/zcaceres/markdownify-mcp.git
@@ -25,3 +25,9 @@ pnpm run build      # create the distributable version that can be called at run
 
 # create environment variables including the API key for OpenAI
 #touch dotenv.env
+
+
+# https://stackoverflow.com/questions/69097224/gobject-2-0-0-not-able-to-load-on-macbook
+# sudo ln -s /opt/homebrew/lib /usr/local/lib
+# export LDFLAGS=-L/opt/homebrew/lib
+# export DYLD_LIBRARY_PATH=/opt/homebrew/lib
