@@ -1,7 +1,3 @@
-
-
-import os
-import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -9,13 +5,16 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import NoSuchElementException
 
+import pandas as pd
+import os
+import time
 
-# load environment variables from .env file (e.g., OpenAI API key)
+# load environment variables from .env file (e.g. OpenAI API key, LinkedIn username, password ...)
 from dotenv import load_dotenv
-load_dotenv('../dotenv.env')
+load_dotenv('dotenv.env')
 
 
-def scrape_linkedin_job_urls():
+def scrape_linkedin_job_urls(target_jobs_url, max_pages=10) -> pd.DataFrame:
     """
     Scrapes recommended job URLs from LinkedIn.
     """
@@ -38,13 +37,13 @@ def scrape_linkedin_job_urls():
     time.sleep(5)  # Wait for the page to load
 
     # Navigate to the recommended jobs page
-    driver.get("https://www.linkedin.com/jobs/collections/recommended/")
+    driver.get(target_jobs_url)
     time.sleep(5)
 
     job_urls = []
     page_number = 1
 
-    while page_number < 10:  # Scrape the first 10 pages
+    while page_number <= max_pages:  # Scrape the first 10 pages
         print(f"Scraping page {page_number}...")
 
         # Scroll to the bottom of the page to load all jobs
@@ -70,13 +69,11 @@ def scrape_linkedin_job_urls():
 
     driver.quit()
 
-    # Save the URLs to a file
-    with open("linkedin_job_urls.txt", "w") as f:
-        for url in job_urls:
-            f.write(f"{url}\n")
 
-    print(f"Successfully scraped {len(job_urls)} job URLs.")
-    return job_urls
+    # strip down to the base view for the job link
+    job_urls_cleaned = [link.split("/?")[0].replace('https', 'http') for link in job_urls]
 
-if __name__ == "__main__":
-    scrape_linkedin_job_urls()
+    # create pandas dataframe from job_urls list
+    df = pd.DataFrame({'job_url': job_urls_cleaned} )
+
+    return df

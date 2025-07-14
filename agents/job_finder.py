@@ -14,6 +14,7 @@ from typing import TypedDict, List, Dict, Any, Optional, Annotated
 from functools import partial
 
 from md2pdf.core import md2pdf
+from linkedin_scraper import scrape_linkedin_job_urls
 
 import pandas as pd
 import asyncio
@@ -193,6 +194,8 @@ async def draft_cover_letter(state: JobState, llm: ChatOpenAI, resume_text: str)
             Job Description: {job_description}
             Resume Content: {resume_draft}
 
+            Do not include a detailed header with the recipient and sender information.  Instead, use this simplified format for the header: 'Dear Hiring Manager,'
+            
             The final answer is the cover letter.  Return only the final answer.\n\n\n\n
         """
 
@@ -230,8 +233,8 @@ async def save_resume_and_cover_letter(state: JobState):
     if not os.path.isdir('resumes_cover_letters'):
         os.mkdir('resumes_cover_letters')
 
-    md2pdf(f"resumes/{id_run}.pdf", md_content=resume_draft)
-    md2pdf(f"resumes_cover_letters/{id_run}.pdf", md_content=cover_letter_draft)
+    md2pdf(f"resumes/resume_{id_run}.pdf", md_content=resume_draft)
+    md2pdf(f"resumes_cover_letters/cover_letter_{id_run}.pdf", md_content=cover_letter_draft)
 
     return {}
 
@@ -389,15 +392,53 @@ async def main(df_targets: pd.DataFrame):
 
 if __name__ == '__main__':
 
-    df_targets = pd.read_csv("docs/target_jobs.csv")
-    df_targets['thread_id'] = ''
-    df_targets['id_run'] = ''
-    df_targets['is_match'] = ''
-    df_targets['resume_path'] = ''
+    # create the cache dir if not already present
+    if not os.path.isdir('cache'):
+        os.mkdir('cache')
 
-    df_results = asyncio.run(main(df_targets))
-    df_results.to_csv('results_output.csv', index=False)
+    # first, call the linked_in_scraper to gather the available urls (sorted by relevance and sorted for past week jobs, mid sr level, location seattle, mid-sr-level)
+    target_jobs_url = "https://www.linkedin.com/jobs/recommended/?f_E=4&f_PP=104116203&f_SB2=7&f_TPR=r604800&f_WT=1%2C3%2C2&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R"
+    df_new_jobs = scrape_linkedin_job_urls(target_jobs_url, max_pages=30)
 
-    # percent matches
-    percent_matches = round(df_results['is_match'].sum() / len(df_targets) * 100, 1)
-    print(f"\n\nPercent matches:  {percent_matches}%")
+    # drop duplicate links found (overlapping)
+    df_new_jobs = df_new_jobs.drop_duplicates()
+
+    # load df for prior jobs processed
+    df_prior_jobs = pd.read_csv("cache/target_jobs_old.csv")
+
+    # compare the new ones to prior applications, and remove prior processed applications from the list
+    df_new_jobs_filtered = df_new_jobs[~df_new_jobs['job_url'].isin(df_prior_jobs['job_url'])].reset_index()
+    df_old_jobs_update = pd.concat([df_new_jobs_filtered, df_prior_jobs], ignore_index=True)
+
+    print(f"new jobs detected: {len(df_new_jobs_filtered.index)}")
+    print(df_new_jobs_filtered)
+
+    # prompt user to continue if wanted
+    proceed = input("\n\nContinue job search agentic pipeline workflow? Type 'yes' to continue: ")
+
+    if proceed == 'yes':
+        print("Updating prior jobs application cache ...")
+
+        # if continue, update the cache
+        df_old_jobs_update.to_csv('cache/target_jobs_old.csv')
+
+        df_new_jobs_filtered['thread_id'] = ''
+        df_new_jobs_filtered['id_run'] = ''
+        df_new_jobs_filtered['is_match'] = ''
+        df_new_jobs_filtered['resume_path'] = ''
+
+        df_results = asyncio.run(main(df_new_jobs_filtered))
+        df_results.to_csv('results_output.csv', index=False)
+
+        # percent matches
+        percent_matches = round(df_results['is_match'].sum() / len(df_new_jobs_filtered) * 100, 1)
+        print(f"\n\nPercent matches:  {percent_matches}%")
+
+    else:
+        print(f"User selected to abort: {proceed}")
+        quit()
+
+
+
+
+
