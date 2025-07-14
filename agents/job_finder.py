@@ -382,7 +382,8 @@ async def main(df_targets: pd.DataFrame):
             df_targets.loc[i, 'id_run'] = response['id_run']
             df_targets.loc[i, 'is_match'] = response['is_match']
             #df_targets.loc[i, 'job_description'] = response['job_description']
-            df_targets.loc[i, 'resume_path'] = os.path.join(os.path.abspath('resumes'), f"{response['id_run']}.pdf")
+            df_targets.loc[i, 'resume_path'] = os.path.join(os.path.abspath('resumes'), f"resume_{response['id_run']}.pdf")
+            df_targets.loc[i, 'cover_letter_path'] = os.path.join(os.path.abspath('resumes_cover_letters'), f"cover_letter_{response['id_run']}.pdf")
 
         except Exception as error:
             print(error)
