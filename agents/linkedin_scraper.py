@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv('dotenv.env')
 
 
-def scrape_linkedin_job_urls(target_jobs_url, max_pages=10) -> pd.DataFrame:
+def scrape_linkedin_job_urls(target_jobs_urls:list, max_pages=30) -> pd.DataFrame:
     """
     Scrapes recommended job URLs from LinkedIn.
     """
@@ -36,36 +36,38 @@ def scrape_linkedin_job_urls(target_jobs_url, max_pages=10) -> pd.DataFrame:
     driver.find_element(By.XPATH, "//button[@type='submit']").click()
     time.sleep(5)  # Wait for the page to load
 
-    # Navigate to the recommended jobs page
-    driver.get(target_jobs_url)
-    time.sleep(5)
-
     job_urls = []
-    page_number = 1
+    for target_jobs_url in target_jobs_urls:
 
-    while page_number <= max_pages:  # Scrape the first 10 pages
-        print(f"Scraping page {page_number}...")
+        # Navigate to the recommended jobs page
+        driver.get(target_jobs_url)
+        time.sleep(5)
 
-        # Scroll to the bottom of the page to load all jobs
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+        page_number = 1
 
-        # Extract job links
-        job_listings = driver.find_elements(By.XPATH, "//a[contains(@href, '/jobs/view/')]")
-        for job in job_listings:
-            job_url = job.get_attribute("href")
-            if job_url not in job_urls:
-                job_urls.append(job_url)
+        while page_number <= max_pages:  # Scrape the first 10 pages
+            print(f"Scraping page {page_number}...")
 
-        # Go to the next page
-        try:
-            next_button = driver.find_element(By.XPATH, f"//button[@aria-label='Page {page_number + 1}']")
-            next_button.click()
-            time.sleep(5)
-            page_number += 1
-        except NoSuchElementException:
-            print("No more pages to scrape.")
-            break
+            # Scroll to the bottom of the page to load all jobs
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+
+            # Extract job links
+            job_listings = driver.find_elements(By.XPATH, "//a[contains(@href, '/jobs/view/')]")
+            for job in job_listings:
+                job_url = job.get_attribute("href")
+                if job_url not in job_urls:
+                    job_urls.append(job_url)
+
+            # Go to the next page
+            try:
+                next_button = driver.find_element(By.XPATH, f"//button[@aria-label='Page {page_number + 1}']")
+                next_button.click()
+                time.sleep(5)
+                page_number += 1
+            except NoSuchElementException:
+                print("No more pages to scrape.")
+                break
 
     driver.quit()
 

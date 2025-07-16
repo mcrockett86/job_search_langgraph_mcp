@@ -397,9 +397,13 @@ if __name__ == '__main__':
     if not os.path.isdir('cache'):
         os.mkdir('cache')
 
-    # first, call the linked_in_scraper to gather the available urls (sorted by relevance and sorted for past week jobs, mid sr level, location seattle, mid-sr-level)
-    target_jobs_url = "https://www.linkedin.com/jobs/recommended/?f_E=4&f_PP=104116203&f_SB2=7&f_TPR=r604800&f_WT=1%2C3%2C2&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R"
-    df_new_jobs = scrape_linkedin_job_urls(target_jobs_url, max_pages=30)
+    # first, call the linked_in_scraper to gather the available urls (sorted by relevance and sorted for past week jobs, mid sr level, location seattle, bellevue, kirkland, mid-sr-level)    
+    target_jobs_urls = [
+        "https://www.linkedin.com/jobs/search/?f_PP=104116203%2C106619589%2C104145663&f_SB2=8&f_TPR=r604800&f_WT=1%2C3%2C2&geoId=103644278&keywords=artificial%20intelligence&origin=JOB_SEARCH_PAGE_SEARCH_BUTTON&refresh=true&sortBy=R",
+        "https://www.linkedin.com/jobs/search/?f_E=4&f_PP=104116203%2C106619589%2C104145663&f_SB2=8&f_TPR=r604800&f_WT=1%2C3%2C2&geoId=103644278&keywords=data%20scientist&origin=JOB_SEARCH_PAGE_KEYWORD_AUTOCOMPLETE&refresh=true&sortBy=R"
+    ]
+    
+    df_new_jobs = scrape_linkedin_job_urls(target_jobs_urls, max_pages=30)
 
     # drop duplicate links found (overlapping)
     df_new_jobs = df_new_jobs.drop_duplicates()
@@ -438,8 +442,4 @@ if __name__ == '__main__':
     else:
         print(f"User selected to abort: {proceed}")
         quit()
-
-
-
-
 
