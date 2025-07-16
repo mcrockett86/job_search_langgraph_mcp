@@ -6,8 +6,7 @@ Job Search Agent Workflow Using LangGraph and MCP.  Scrapes available jobs from 
 - run.sh
 
 ## Demo - Weekly Update Job Search
-
-
+![Demonstration Video](https://raw.githubusercontent.com/mcrockett86/job_search_langgraph_mcp/refs/heads/master/demo.mp4?raw=true)
 
 ## LangGraph DAG
 ![Diagram Agent Flow](http://raw.githubusercontent.com/mcrockett86/job_search_langgraph_mcp/refs/heads/master/job_graph.png?raw=true)
