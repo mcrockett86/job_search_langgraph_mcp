@@ -1,24 +1,19 @@
+from langchain.tools import tool
 from typing import Any
-from server import mcp
-from mcp.server.fastmcp import Context
-
 import requests
 from bs4 import BeautifulSoup
 import html2text
 import os
 import pdb
 
+
 # Reference: https://stackademic.com/blog/web-scraping-with-llms-using-langchain
-@mcp.tool()
-async def scraper_extract_html_from_url(url:str, ctx: Context) -> str | None:    
+async def scraper_extract_html_from_url(url:str) -> str | None:    
     """Navigate to a URL, Fetch HTML content, and convert it to plain text, excluding certain tags."""
 
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Ubuntu; Firefox=41)'
     }
-
-    # log out tool call
-    #await ctx.debug(f"Scraping URL: {url}")
 
     try:
         # Fetch HTML content from the URL using requests
@@ -43,4 +38,4 @@ async def scraper_extract_html_from_url(url:str, ctx: Context) -> str | None:
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data from {url}: {e}")
-        await ctx.debug(f"Error fetching data from {url}: {e}")
+        return ""

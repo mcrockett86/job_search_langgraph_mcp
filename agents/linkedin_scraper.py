@@ -65,8 +65,9 @@ def scrape_linkedin_job_urls(target_jobs_urls:list, max_pages=30) -> pd.DataFram
                 next_button.click()
                 time.sleep(5)
                 page_number += 1
-            except NoSuchElementException:
-                print("No more pages to scrape.")
+                
+            except Exception as error:
+                print(error)
                 break
 
     driver.quit()
