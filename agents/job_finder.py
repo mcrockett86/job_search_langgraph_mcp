@@ -201,15 +201,12 @@ def create_job_graph() -> StateGraph:
     builder.add_node("read_job_description", read_job_description)
     builder.add_node("classify_job_description", classify_job_description)
     builder.add_node("extract_job_details", extract_job_details)
-
     builder.add_node("handle_bad_fit", handle_bad_fit)
     builder.add_node("handle_good_fit", handle_good_fit)
-
 
     ###  Define The Job Graph Routing Logic ###
     builder.add_edge(START, "read_job_description")
     builder.add_edge("read_job_description", "classify_job_description")
-
 
     # Add conditional edges
     builder.add_conditional_edges(
@@ -363,9 +360,9 @@ if __name__ == '__main__':
         # TODO: remove any company names not desired
         remove_companies = ['amazon', 'harnham', 'insight global', 'tiktok', 'walmart', 'microsoft', 'apple']
 
-        breakpoint()
+        df_results_filtered = df_results[~df_results['company_name'].isin(remove_companies)]
 
-        df_results.to_csv('results_output.csv', index=False)
+        df_results_filtered.to_csv('results_output.csv', index=False)
 
     else:
         print(f"User selected to abort: {proceed}")
